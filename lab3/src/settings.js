@@ -21,7 +21,7 @@ export const defaults = {
   smoothSpeed: 90,        // degrees per second
   // Lab 3 (accessibility)
   gazeEnabled: true,
-  dwell: 1.2,             // seconds
+  dwell: 1.0,             // seconds
   targetScale: 1.0,       // 0.8 - 1.6
   reducedMotion: prefersReduced,
   captions: true,
