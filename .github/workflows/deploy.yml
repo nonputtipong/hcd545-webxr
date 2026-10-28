@@ -1,4 +1,4 @@
-# Builds every lab*/ folder (see build-site.sh) and deploys them to GitHub Pages on every push to main.
+# Builds every lab*/ folder and a1/ (see build-site.sh) and deploys them to GitHub Pages on every push to main.
 # One-time setup: Settings > Pages > Source = GitHub Actions.
 name: Deploy to GitHub Pages
 
@@ -25,7 +25,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: lab*/package-lock.json
+          cache-dependency-path: |
+            lab*/package-lock.json
+            a1/package-lock.json
       - run: bash build-site.sh
         env:
           COMMIT_SHA: ${{ github.sha }}   # shown in each page footer

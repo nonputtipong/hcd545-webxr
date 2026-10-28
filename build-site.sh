@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# Builds every lab*/ folder that has a package.json into site/<lab>/ and writes a home page listing them.
+# Builds every lab*/ folder and a1/ that has a package.json into site/<lab>/ and writes a home page listing them.
 set -euo pipefail
 cd "$(dirname "$0")"
 rm -rf site && mkdir site
 links=""
-for dir in lab*/; do
+for dir in lab*/ a1/; do
   lab=${dir%/}
   [ -f "$lab/package.json" ] || continue
   (cd "$lab" && npm ci && npm run build)
   cp -R "$lab/dist" "site/$lab"
-  links+="<li><a href=\"$lab/\">${lab/lab/Lab }</a></li>"
+  name=${lab/lab/Lab }; [ "$lab" = a1 ] && name="Assignment 1"
+  links+="<li><a href=\"$lab/\">$name</a></li>"
 done
 cat > site/index.html <<EOF
 <!doctype html>
