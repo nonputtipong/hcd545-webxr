@@ -1,0 +1,132 @@
+/* Lab 3 interface (the same design as Lab 2): an instrument panel over a live scene. CMKL graphite panels, orange only on things you do,
+   red only for the frame-rate warning, Anuphan with tabular figures for every number. */
+@font-face { font-family: 'Anuphan'; src: url('./fonts/Anuphan-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Anuphan'; src: url('./fonts/Anuphan-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+
+:root { color-scheme: dark;
+  --graphite: rgba(51, 51, 51, .92);   /* #333, CMKL dark: panels and view buttons */
+  --graphite-solid: #333333;
+  --light: #cccccc;                    /* secondary text, group headings, slider and checkbox accent */
+  --paper: #ffffff;                    /* primary text */
+  --orange: #ff572b;                   /* actions: Stereo, Turn, Blink test, Start, Enter VR */
+  --red: #ca092b;                      /* the frame-rate warning */
+  --ink: #000000;                      /* text on orange */
+  --line: rgba(255, 255, 255, .18);    /* thin divider line inside panels */
+  /* 8 px from each edge, or the notch / home-indicator inset on iPhone (the viewport uses viewport-fit=cover) */
+  --st: max(8px, env(safe-area-inset-top)); --sr: max(8px, env(safe-area-inset-right));
+  --sb: max(8px, env(safe-area-inset-bottom)); --sl: max(8px, env(safe-area-inset-left)); }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #000; color: var(--paper); font: 400 14px/1.4 'Anuphan', system-ui, sans-serif; overflow: hidden; }
+canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+output, #fps, .row input + output { font-variant-numeric: tabular-nums; }
+
+/* Buttons: dark gray by default (Turn, Blink test, Recenter); orange (solid, black text) for Stereo; muted gray for the view buttons (Sky, Cues, Shadows). */
+.btn { font: inherit; color: var(--paper); background: var(--graphite); border: 1px solid rgba(255, 255, 255, .22); border-radius: 3px;
+  padding: 10px 12px; min-height: 44px; min-width: 44px; cursor: pointer; }
+.btn:hover { border-color: rgba(255, 255, 255, .5); }
+.btn:active { background: var(--graphite-solid); }
+.btn:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
+.btn.act, .btn.primary { background: var(--orange); border-color: var(--orange); color: var(--ink); font-weight: 700; }
+.btn.act:hover, .btn.primary:hover { border-color: var(--paper); }
+.btn.act:active, .btn.primary:active { background: #e64a22; }
+
+[hidden] { display: none !important; }
+/* Toolbar: a column at the top left, actions first, then the view buttons after a gap. When the screen is too short
+   (a phone in landscape) the buttons continue in a second column, leaving room for the frame-rate box at the bottom left. */
+#bar { position: fixed; top: var(--st); left: var(--sl); display: grid; grid-auto-flow: column; grid-template-rows: repeat(auto-fill, minmax(44px, auto));
+  gap: 6px; max-height: calc(100vh - var(--st) - var(--sb) - 34px); z-index: 10; }
+#bar .btn { white-space: nowrap; text-align: left; }
+#bar .btn.gap { margin-top: 10px; }   /* gaps between the three groups: Stereo | turning and moving | view */
+.btn.muted { background: rgba(102, 102, 102, .85); border-color: rgba(255, 255, 255, .18); color: #e6e6e6; }   /* muted gray (#666), off-white text (contrast 4.6:1): quieter than the turn group */
+
+/* Panels: Capabilities and Settings in one column at the top right; an open panel takes its button's place. */
+.stack { position: fixed; top: var(--st); right: var(--sr); width: min(340px, calc(100vw - var(--sl) - var(--sr) - 156px)); max-height: calc(100vh - var(--st) - var(--sb) - 74px); overflow: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; z-index: 10; }
+.stack .panel { width: 100%; }
+.stack > .btn { width: 7.5em; }   /* Capabilities and Settings buttons the same width */
+.panel { background: var(--graphite); border: 1px solid rgba(255, 255, 255, .14); border-radius: 3px; padding: 4px 12px 8px; }
+.panel .head { display: flex; align-items: center; justify-content: space-between; min-height: 44px; font-size: 15px; font-weight: 700; }
+.panel .close { min-height: 36px; min-width: 36px; padding: 4px 10px; background: transparent; }
+.panel .body { padding: 0 0 4px; }
+.group { margin: 12px 0 2px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--light); font-size: 13px; font-weight: 700; }
+.panel .body > .group:first-child, .panel [role=tabpanel] > .group:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+/* Settings tabs: four across on a laptop, two rows on a phone. The open tab is white on graphite with a white underline (not orange: a tab is not an action). */
+.tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 4px; margin: 0 0 10px; }
+.tab { font: inherit; font-size: 13px; color: var(--light); background: transparent; border: 0; border-bottom: 2px solid var(--line); min-height: 36px; padding: 4px 6px; cursor: pointer; }
+.tab:hover { color: var(--paper); }
+.tab[aria-selected=true] { color: var(--paper); font-weight: 700; border-bottom-color: var(--paper); }
+.tab:focus-visible { outline: 2px solid var(--paper); outline-offset: 1px; }
+.row { display: grid; grid-template-columns: 1.3fr 1fr 2.4em; gap: 8px; align-items: center; margin: 6px 0; }   /* wide label column: no wrapped labels */
+.row.check { grid-template-columns: 24px 1fr; }
+.row input[type=range] { width: 100%; min-height: 32px; accent-color: var(--light); }
+.row input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--light); }
+.row select { grid-column: span 2; font: inherit; min-height: 36px; color: var(--paper); background: #262626; border: 1px solid rgba(255, 255, 255, .3); border-radius: 3px; padding: 0 6px; }
+.row output { text-align: right; font-weight: 700; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.btnrow.foot { justify-content: center; margin: 14px 0 4px; }   /* Reset settings, centered below every tab */
+.btn.link { font-size: 13px; min-height: 36px; padding: 6px 12px; background: none; border: 0; color: var(--light); text-decoration: underline; text-underline-offset: 3px; }   /* Reset settings: underlined text, rarely needed */
+.btn.link:hover { color: var(--paper); }
+table.caps { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.caps th { text-align: left; font-weight: 400; color: var(--light); padding: 3px 8px 3px 0; vertical-align: top; width: 48%; }
+table.caps td { padding: 3px 0; word-break: break-word; }
+.hint { color: var(--light); font-size: 13px; margin: 6px 0; }
+.copy { width: 100%; font: 12px/1.4 'Anuphan', system-ui, sans-serif; color: var(--paper); background: #1f1f1f; border: 1px solid rgba(255, 255, 255, .3); border-radius: 3px; }
+.results { padding-left: 20px; font-size: 13px; margin: 4px 0; }
+
+/* Frame-rate box: graphite like the panels; red when the rate falls below 90 % of the target. */
+#fps { position: fixed; left: var(--sl); bottom: var(--sb); z-index: 10; font-size: 13px; font-weight: 700; padding: 5px 9px; border-radius: 3px; background: var(--graphite); }
+#fps.bad { color: var(--paper); background: var(--red); }
+
+/* Start card */
+#start { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(0, 0, 0, .78);
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+#start .card { max-width: 30rem; background: var(--graphite-solid); border-radius: 3px; padding: 24px 28px 28px; }
+#start h1 { margin: 0 0 12px; font-size: 24px; line-height: 1.2; font-weight: 700; }
+#start p { margin: 0 0 10px; color: var(--light); font-size: 15px; line-height: 1.5; }
+#start .btn { margin-top: 10px; min-width: 8rem; font-size: 16px; }
+
+/* Stereo split screen: DOM panels would sit in one eye only, so hide them (the frame-rate box and Exit stereo stay). */
+body.stereo .ui, body.stereo .stack, body.stereo #bar .btn:not(.keep) { display: none; }
+body.stereo #bar { display: flex; top: auto; bottom: var(--sb); left: auto; right: var(--sr); flex-direction: row; }
+body.stereo #fps { left: var(--sl); }
+#bar .keep { display: none; }
+body.stereo #bar .keep { display: inline-block; margin-top: 0; }
+
+/* three's VRButton sets its own position and look; center it at the bottom and give it the action style. */
+.vrbtn { position: fixed !important; left: 50% !important; right: auto !important; bottom: calc(max(4px, env(safe-area-inset-bottom)) + 20px) !important; transform: translateX(-50%);   /* above the build footer */
+  width: auto !important; min-height: 44px; padding: 10px 18px !important; background: var(--orange) !important; color: var(--ink) !important;
+  border: 1px solid var(--orange) !important; border-radius: 3px !important; font: 700 14px 'Anuphan', system-ui, sans-serif !important; opacity: 1 !important; z-index: 10; }
+body:not(.started) .vrbtn { display: none !important; }   /* no ENTER VR until Start is pressed */
+body.stereo .vrbtn { display: none !important; }
+
+/* Sound button, bottom right (the sound starts off). Hidden in stereo with the other DOM panels (.ui). */
+#sound { position: fixed; right: var(--sr); bottom: var(--sb); z-index: 10; }
+
+/* Build footer (commit hash), bottom center under ENTER VR. Hidden in stereo with the other DOM panels (.ui). */
+#build { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(4px, env(safe-area-inset-bottom)); white-space: nowrap; z-index: 9; font-size: 11px; color: rgba(255, 255, 255, .6); pointer-events: none; }
+/* On a narrow screen (a phone held upright) the frame-rate box reaches the middle: ENTER VR and the build line move up above it. */
+@media (max-width: 560px) {
+  #build { bottom: calc(var(--sb) + 36px); }
+  .vrbtn { bottom: calc(var(--sb) + 56px) !important; }
+}
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* High-contrast mode (Lab 3; the High contrast setting toggles body.contrast): black panels, white text and borders,
+   yellow for focus and for the action buttons. */
+body.contrast { --graphite: #000; --graphite-solid: #000; --light: #fff; --paper: #fff; --line: #fff; }
+body.contrast .panel, body.contrast #start .card { background: #000; border: 2px solid #fff; }
+body.contrast .btn, body.contrast .btn.muted { background: #000; color: #fff; border: 2px solid #fff; }
+body.contrast .btn.act, body.contrast .btn.primary { background: #ffeb3b; border-color: #ffeb3b; color: #000; }
+body.contrast .btn:active { background: #ffeb3b; color: #000; }
+body.contrast .btn.link { background: none; border: 0; color: #fff; }
+body.contrast .btn:focus-visible { outline: 3px solid #ffeb3b; }
+body.contrast .row select { background: #000; border: 2px solid #fff; }
+body.contrast .group { color: #fff; border-top-color: #fff; }
+body.contrast .tab { color: #fff; border-bottom-color: #666; }
+body.contrast .tab[aria-selected=true] { color: #ffeb3b; border-bottom: 3px solid #ffeb3b; }
+body.contrast .tab:focus-visible { outline: 3px solid #ffeb3b; }
+body.contrast .hint, body.contrast table.caps th { color: #fff; }
+body.contrast #fps, body.contrast #build { background: #000; color: #ffeb3b; border: 1px solid #fff; }
+body.contrast #fps.bad { background: #ffeb3b; color: #000; }
+body.contrast #start { background: #000; }
+body.contrast .vrbtn { background: #ffeb3b !important; border-color: #ffeb3b !important; color: #000 !important; }
