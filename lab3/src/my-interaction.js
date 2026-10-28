@@ -29,12 +29,14 @@ export function addMyTargets({ scene, gaze, captions, audio }) {
     return mesh;
   };
 
+  // Start -> open the gift box -> a gold star appears -> look at the star to play again. Every ping has a caption.
   const startMarker = make(new THREE.SphereGeometry(0.25, 24, 16), 0x2ecc71, 'Start',
-    () => go('task', '[start] Look at the cube to finish the task'));
-  const cube = make(new THREE.BoxGeometry(0.5, 0.5, 0.5), 0xab47bc, 'Info cube',
-    () => go('end', '[done] Task complete. Look at the gold sphere to try again'));
-  const endMarker = make(new THREE.SphereGeometry(0.25, 24, 16), 0xffc107, 'Done',
-    () => go('start', '[reset] Back to the start'));
+    () => { audio.ping(); go('task', '[ping] A gift appeared. Look at the box to open it'); });
+  const cube = make(new THREE.BoxGeometry(0.5, 0.5, 0.5), 0xab47bc, 'Gift box',
+    () => { audio.ping(); go('end', '[ping] The gift opened: a gold star! Look at the star to play again'); });
+  const endMarker = make(new THREE.OctahedronGeometry(0.3), 0xffc107, 'Star',
+    () => { audio.ping(); go('start', '[ping] Back to the start'); });
+  cube.rotation.y = Math.PI / 4;   // turned corner-on, so it reads as a box, not a flat square
 
   // Each step stands in its own place, so the user has to look at the next object on purpose. (If they shared one spot, a single
   // long look would run start > task > end without a decision.)
