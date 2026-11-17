@@ -11,15 +11,17 @@ import { set } from './settings.js';   // two-way import: settings.js reads comf
 // intense:     smooth turning (90 degrees per second), no vignette.
 // The snap angle changes how far each jump goes, not how much motion you see.
 // Assignment 1: the comfort DEFAULTS a first-time visitor gets (settings.js reads them; Reset settings returns to them).
-// Each value comes from my own tests in Lab 2 and Lab 3. [CONFIRM: check each reason against what you felt, and edit it.]
+// Each value comes from my own test (2026-11-18). I do not get motion sick, so where my own taste differs, the default
+// protects a visitor who does: everyone can still change every value in Settings > Comfort.
 export const comfortDefaults = {
-  vignette: 'motion',  // A dark edge only while turning or teleporting: it cut the dizzy feeling of turns for me, and an
-                       // 'always' vignette hid the side tiles and the 3D menu when standing still.
-  turnMode: 'snap',    // Snap turns show no motion between the two views, so there is no optic flow; smooth turning at
-                       // 90 deg/s was the setting that made me uneasy first. No continuous movement by default.
-  snapAngle: 30,       // 30 deg: three turns face the menu on the right. 15 deg needed too many turns, 45-90 deg made me
-                       // lose track of where I was facing.
-  smoothSpeed: 90,     // Only used when a visitor picks Smooth: 90 deg/s was the slowest speed that still felt responsive.
+  vignette: 'motion',  // I like Off best, and 'always' felt like something covering my eyes (it suits a horror game, not
+                       // this one). 'During motion' was fine for me and still darkens the edges for sensitive visitors.
+  turnMode: 'snap',    // I prefer Smooth (it looks like real life) and felt no sickness, but smooth turning shows the world
+                       // sliding past, the main cause of VR sickness, and the task asks for no continuous movement by default.
+                       // Note: I think snap could tire my eyes over a long session; this game takes under a minute.
+  snapAngle: 30,       // My comfort zone: 15 deg needed too many presses, 90 deg made me lose track of where I was facing.
+  smoothSpeed: 90,     // Only used when a visitor picks Smooth. It felt a little slow to me, but slower is gentler for
+                       // people who are new to VR, so I kept it.
   latencyMs: 0,        // Added latency only ever makes comfort worse, so it stays at 0.
 };
 
